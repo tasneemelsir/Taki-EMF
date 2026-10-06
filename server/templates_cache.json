@@ -1,5 +1,5 @@
 {
- "key": "f2fa4c57eb2c40b06ac815e244f54873d84da568a1321ce10d21cfb664f3df8c",
+ "key": "cc6ecb11eb83d6796043b66fed5d0a930a1343d21606f15173e621779d56a566",
  "summaries": {
   "barrier": {
    "buildings": 1,
@@ -91,5 +91,5 @@
    "shield": true
   }
  },
- "version": "4.3.3"
+ "version": "4.3.4"
 }

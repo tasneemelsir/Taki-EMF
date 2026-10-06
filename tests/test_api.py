@@ -1,5 +1,7 @@
 """HTTP layer: accounts, sessions, ownership and the main endpoints."""
 
+import os
+
 from server import service
 
 PW = "correct horse battery"
@@ -153,6 +155,39 @@ def test_spa_fallback_serves_the_app_or_a_clear_message(client):
     r = client.get("/p/anything/dashboard")
     assert r.status_code in (200, 503)
     assert client.get("/api/does-not-exist").status_code == 404
+
+
+def test_a_new_page_is_not_mistaken_for_the_old_one(client, tmp_path, monkeypatch):
+    """
+    Some hosts give every file of every version the same date. A new page of the same size
+    as the old one must still look new to a browser that holds the old one.
+    """
+    from server import config
+    static = tmp_path / "static"
+    (static / "icons").mkdir(parents=True)
+    monkeypatch.setattr(config, "STATIC_DIR", str(static))
+    page = static / "index.html"
+
+    def publish(build):
+        for path, body in ((page, '<script src="/assets/index-%s.js"></script>' % build),
+                           (static / "icons" / "icon.png", "PNG " + build),
+                           (static / "manifest.webmanifest", '{"name": "%s"}' % build)):
+            path.write_bytes(body.encode())
+            os.utime(path, (1_540_000_000, 1_540_000_000))          # 20 October 2018, as that host stamps them
+
+    publish("AAAAAAAA")
+    old = {path: client.get(path) for path in ("/", "/p/x/dashboard", "/icons/icon.png", "/manifest.webmanifest")}
+    publish("BBBBBBBB")                                                # the next version: same size, same date
+    for path, before in old.items():
+        now = client.get(path)
+        assert now.status_code == 200 and now.content != before.content, path
+        assert now.headers["etag"] != before.headers["etag"], path
+        assert now.headers["cache-control"] == "no-cache" and "last-modified" not in now.headers, path
+        assert client.get(path).headers["etag"] == now.headers["etag"], path      # unchanged content, unchanged mark
+    assert old["/"].headers["etag"] == old["/p/x/dashboard"].headers["etag"]       # every address of the page is one page
+    assert client.get("/").headers["content-type"].startswith("text/html")
+    assert client.get("/icons/icon.png").headers["content-type"] == "image/png"
+    assert client.get("/manifest.webmanifest").headers["content-type"] == "application/manifest+json"
 
 
 def test_copy_sqlite_into_the_configured_database(client, tmp_path):

@@ -573,6 +573,15 @@ at zero. Lines that would run only between the ground and an unearthed sheet are
 
 ## 9. What changed
 
+### In version 4.3.4
+
+* **A browser that had the old page kept showing it after an update.** Found on Vercel, on the
+  second test of the published site. A browser asks whether the page it holds is still current,
+  and the answer was made from the page file's date and size. Vercel gives every file of every
+  version the same date, and the page of a new version has the same size as the old one, so the
+  answer was always "still current". The page, the icons and the manifest now carry a mark made
+  from their contents.
+
 ### In version 4.3.3
 
 Found by testing the published site itself, function by function:

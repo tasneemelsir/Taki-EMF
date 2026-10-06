@@ -10,7 +10,9 @@ Run with:  python run.py        (or: uvicorn server.main:app)
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import mimetypes
 import os
 import threading
 import time
@@ -19,8 +21,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse,
-                               StreamingResponse)
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from engine import ai_report, lines as lines_mod
@@ -742,6 +743,21 @@ if os.path.isdir(_assets):
     app.mount("/assets", StaticFiles(directory=_assets), name="assets")
 
 
+def _own_file(path: str, media_type: Optional[str] = None) -> Response:
+    """
+    A file of the interface that keeps its name from one version to the next: the page itself,
+    the icons. It goes out with a mark made from its contents, and the browser asks each time
+    whether that mark still holds. The usual mark is made from a file's date and size, and some
+    hosts give every file of every version the same date. A new page of the same size as the old
+    one then looked unchanged, and a browser that had the old page went on showing it.
+    """
+    with open(path, "rb") as fh:
+        data = fh.read()
+    kind = media_type or mimetypes.guess_type(path)[0] or "application/octet-stream"
+    return Response(data, media_type=kind, headers={
+        "Cache-Control": "no-cache", "ETag": '"%s"' % hashlib.sha256(data).hexdigest()[:32]})
+
+
 @app.get("/{full_path:path}", include_in_schema=False)
 def spa(full_path: str):
     if full_path.startswith("api/"):
@@ -757,12 +773,11 @@ def spa(full_path: str):
                 manifest["display"] = "browser"
                 return JSONResponse(manifest, media_type="application/manifest+json",
                                     headers={"Cache-Control": "no-cache"})
-            return FileResponse(candidate, media_type="application/manifest+json",
-                                headers={"Cache-Control": "no-cache"})
-        return FileResponse(candidate)
+            return _own_file(candidate, "application/manifest+json")
+        return _own_file(candidate)
     index = os.path.join(config.STATIC_DIR, "index.html")
     if os.path.isfile(index):
-        return FileResponse(index, headers={"Cache-Control": "no-cache"})
+        return _own_file(index, "text/html")
     return PlainTextResponse(
         "The Taki server is running, but the web interface has not been built.\n"
         "Run:  cd web && npm install && npm run build", status_code=503)
