@@ -77,6 +77,7 @@ let solveTimer: number | undefined;
 let saveTimer: number | undefined;
 let solveAbort: AbortController | null = null;
 let toastId = 1;
+let libraryLoading: Promise<void> | null = null;
 const MAX_HISTORY = 60;
 
 function initialTheme(): 'light' | 'dark' {
@@ -140,10 +141,12 @@ export const useStore = create<State>((set, get) => {
       if (!u) set({ project: null, config: null, sol: null, library: null, past: [], future: [] });
     },
 
-    loadLibrary: async () => {
-      if (get().library) return;
-      const library = await api.get<Library>('/library');
-      set({ library });
+    loadLibrary: () => {
+      if (get().library) return Promise.resolve();
+      // Two parts of the app ask for the library as a page opens; they share one request.
+      libraryLoading ??= api.get<Library>('/library').then((library) => { set({ library }); })
+        .finally(() => { libraryLoading = null; });
+      return libraryLoading;
     },
 
     openProject: async (id) => {

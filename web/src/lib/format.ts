@@ -55,6 +55,18 @@ function sup(n: number): string {
   return String(n).split('').map((c) => map[c] ?? c).join('');
 }
 
+const two = (n: number) => String(n).padStart(2, '0');
+
+/** Today on the reader's own clock, for file names: 2026-10-07. */
+export function localDay(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
+}
+
+/** Now on the reader's own clock, for the date a report carries: a published copy's clock is hours away. */
+export function localStamp(d: Date = new Date()): string {
+  return `${localDay(d)} ${two(d.getHours())}:${two(d.getMinutes())}`;
+}
+
 export function ago(ts: number): string {
   const s = Date.now() / 1000 - ts;
   if (s < 60) return 'just now';

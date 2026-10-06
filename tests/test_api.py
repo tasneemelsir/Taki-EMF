@@ -326,6 +326,28 @@ def test_transactions_roll_back_together(client):
     assert db.scalar("SELECT COUNT(*) AS n FROM users WHERE id = 'tx2'") == 1
 
 
+def test_a_database_that_is_ready_is_asked_once_not_set_up_again(client, monkeypatch):
+    """Every start used to run the whole set-up script: fifteen round trips to a database that had it all."""
+    from server import db
+    con = db.conn()
+    if not db.is_postgres():
+        assert con.ready() is False             # a local file: the script costs nothing, so it always runs
+        return
+    assert con.ready() is True
+    ran = []
+    with monkeypatch.context() as patch:
+        patch.setattr(type(con), "script", lambda self, sql: ran.append(sql))
+        db.reset_for_tests()
+        db.conn()
+    assert ran == []                            # the next start asks its one question and changes nothing
+    for damage in ("DROP INDEX idx_scenarios_project", "ALTER TABLE shares DISABLE ROW LEVEL SECURITY",
+                   "DROP TABLE password_resets"):
+        db.conn().execute(damage)
+        assert db.conn().ready() is False, damage
+        db.reset_for_tests()
+        assert db.conn().ready() is True, damage            # and the start after that puts it right
+
+
 def test_meta_reports_where_the_data_lives(client):
     m = client.get("/api/meta").json()
     assert m["database"] in ("sqlite", "postgresql") and m["email"] is False

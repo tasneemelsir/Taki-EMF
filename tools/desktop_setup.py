@@ -97,6 +97,39 @@ def run(cmd: List[str], cwd: Optional[str] = None, env: Optional[dict] = None, t
 # ---------------------------------------------------------------------------
 # The program files
 # ---------------------------------------------------------------------------
+def interface_assets(source: str) -> Optional[set]:
+    """
+    The names in server/static/assets that the interface really loads: what index.html names,
+    and what those files name in turn. Files of an older build can lie beside them (the same
+    rule, for the same reason, as server/desktop_package.py). None: it cannot be told, take all.
+    """
+    folder = os.path.join(source, STATIC, "assets")
+    try:
+        names = sorted(n for n in os.listdir(folder) if not n.startswith(".") and not n.endswith(".map"))
+        with open(os.path.join(source, STATIC, "index.html"), "rb") as fh:
+            page = fh.read()
+    except OSError:
+        return None
+    used = {n for n in names if n.encode("utf-8") in page}
+    if not used:
+        return None
+    todo = list(used)
+    while todo:
+        name = todo.pop()
+        if not name.endswith((".js", ".css")):
+            continue
+        try:
+            with open(os.path.join(folder, name), "rb") as fh:
+                text = fh.read()
+        except OSError:
+            return None
+        for other in names:
+            if other not in used and other.encode("utf-8") in text:
+                used.add(other)
+                todo.append(other)
+    return used
+
+
 def program_files(source: str) -> List[Tuple[str, str]]:
     """(path in the source folder, path relative to the installed app folder) of every file to copy."""
     out: List[Tuple[str, str]] = []
@@ -112,12 +145,14 @@ def program_files(source: str) -> List[Tuple[str, str]]:
                 continue
             out += [(os.path.join(folder, n), f"{rel}/{n}".replace(os.sep, "/")) for n in sorted(names)
                     if n.endswith(kinds) and not n.startswith(".")]
+    loaded = interface_assets(source)
     for base, keep in ((STATIC, lambda n: not n.endswith(".map")), (WHEELS, lambda n: n.endswith(".whl"))):
         for folder, dirs, names in os.walk(os.path.join(source, base)):
             dirs[:] = sorted(d for d in dirs if not d.startswith("."))
             rel = os.path.relpath(folder, source)
+            stale = loaded if rel == os.path.join(STATIC, "assets") else None     # only there do old builds linger
             out += [(os.path.join(folder, n), f"{rel}/{n}".replace(os.sep, "/")) for n in sorted(names)
-                    if keep(n) and not n.startswith(".")]
+                    if keep(n) and not n.startswith(".") and (stale is None or n in stale)]
     return out
 
 

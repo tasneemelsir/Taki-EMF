@@ -3,11 +3,17 @@
 import base64
 import copy
 import json
+import os
+import subprocess
+import sys
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pytest
 
 from server import report_service, service, twin_service, validation_service
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 LEGACY = {  # a scenario file written by the Streamlit versions of Taki
     "schema_version": 1, "num_lines": 2, "max_sag_m": 2.0, "row_boundary_m": 15.0,
@@ -173,6 +179,45 @@ def test_reports_render_in_every_format():
     prev = report_service.preview(cfg, {}, user)
     json.dumps(prev)                                   # no raw image bytes in the preview
     assert prev["doc"]["blocks"] and "EXECUTIVE SUMMARY" in prev["text"]
+
+
+def test_a_report_carries_the_readers_own_clock():
+    """A published copy's clock is UTC. The browser sends the reader's time, and the report uses it."""
+    cfg = service.default_config()
+    utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    theirs = (utc + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M")           # a reader in Kuala Lumpur
+    txt, _, name = report_service.render(cfg, "txt", {"generated": theirs}, {})
+    assert f"Generated: {theirs}".encode() in txt
+    assert name.endswith("_" + theirs.replace("-", "").replace(":", "").replace(" ", "_") + ".txt")
+    assert report_service.preview(cfg, {"generated": theirs}, {})["doc"]["date"] == theirs
+    for hours in (-12, -5, 0, 5.5, 14):                                       # every time zone there is
+        stamp = (utc + timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M")
+        assert report_service.generated_at({"generated": stamp}) == stamp
+    # anything that is not a time on a believable clock is ignored, and the server's own is used
+    for bad in ("", None, "yesterday", "2026-13-45 99:99", "1999-01-01 00:00", "2026-10-07 01:57<b>", 12345,
+                ["2026-10-07 01:57"], (utc + timedelta(days=2)).strftime("%Y-%m-%d %H:%M"),
+                (utc - timedelta(hours=16)).strftime("%Y-%m-%d %H:%M")):
+        got = datetime.strptime(report_service.generated_at({"generated": bad}), "%Y-%m-%d %H:%M")
+        assert abs(got - datetime.now()) < timedelta(minutes=2), bad
+    assert report_service.generated_at({})                                    # and nothing sent at all
+
+
+def test_starting_does_not_load_the_charting_library(tmp_path):
+    """matplotlib is a third of the start-up time and only reports with figures need it."""
+    code = ("import sys\n"
+            "import server.main\n"
+            "print('matplotlib' in sys.modules)\n"
+            "from server import report_service, service\n"
+            "report_service.preview(service.default_config(), {}, {})\n"
+            "print('matplotlib' in sys.modules)\n"
+            "pdf = report_service.render(service.default_config(), 'pdf', {}, {})[0]\n"
+            "print('matplotlib' in sys.modules, pdf[:5] == b'%PDF-')\n")
+    env = dict(os.environ, TAKI_IGNORE_ENV_FILE="1", TAKI_DATA_DIR=str(tmp_path), MPLCONFIGDIR=str(tmp_path / "mpl"))
+    for name in ("DATABASE_URL", "TAKI_DATABASE_URL", "TAKI_DESKTOP"):
+        env.pop(name, None)
+    done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env, capture_output=True, text=True, timeout=300)
+    assert done.returncode == 0, done.stderr[-2000:]
+    assert done.stdout.split() == ["False", "False", "True", "True"]
 
 
 def test_validation_catalogue_and_comparison():

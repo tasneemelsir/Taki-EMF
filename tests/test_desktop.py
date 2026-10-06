@@ -11,6 +11,7 @@ import io
 import json
 import os
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -467,6 +468,29 @@ def test_the_download_holds_the_program_and_nothing_else(client):
     assert config.VERSION in z.read(top + "READ ME.txt").decode()
     assert z.read(top + "app/server/config.py") == open(os.path.join(ROOT, "server", "config.py"), "rb").read()
     assert desktop_package.build()[0] is desktop_package.build()[0]     # built once, then kept
+
+
+def test_files_left_by_an_older_build_stay_out_of_the_download(tmp_path, monkeypatch, setup_script):
+    """A folder copied over an older one keeps the older interface files: their names differ, nothing replaces them."""
+    from server import config, desktop_package
+    loaded = desktop_package.interface_assets()                          # what this copy's page really loads
+    assert loaded and any(n.endswith(".css") for n in loaded) and sum(n.endswith(".js") for n in loaded) >= 3
+    shutil.copytree(os.path.join(ROOT, "server", "static"), tmp_path / "server" / "static")
+    assets = tmp_path / "server" / "static" / "assets"
+    (assets / "index-0ldBu1ld.js").write_text("import('./TwinPage-0ldBu1ld.js')")
+    (assets / "TwinPage-0ldBu1ld.js").write_text("an older page")
+    monkeypatch.setattr(config, "ROOT", str(tmp_path))
+    assert desktop_package.interface_assets() == loaded
+    inside = {name for _, name in desktop_package.files()}
+    assert {n for n in inside if "/static/assets/" in n} == {"app/server/static/assets/" + n for n in loaded}
+    assert "app/server/static/index.html" in inside and "app/server/static/icons/taki.ico" in inside
+    # the installer goes by the same rule, so what it copies is what the download carries
+    assert setup_script.interface_assets(str(tmp_path)) == loaded
+    assert {"app/" + rel for _, rel in setup_script.program_files(str(tmp_path))} == inside
+    # without the page to read, nothing is guessed: every file is taken
+    os.remove(tmp_path / "server" / "static" / "index.html")
+    assert desktop_package.interface_assets() is None and setup_script.interface_assets(str(tmp_path)) is None
+    assert any("0ldBu1ld" in name for _, name in desktop_package.files())
 
 
 def test_the_download_can_be_switched_off(client, monkeypatch):

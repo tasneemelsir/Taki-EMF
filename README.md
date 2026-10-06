@@ -374,14 +374,18 @@ same accounts and projects, so a second host can be tried without giving up the 
 ### Vercel (free, no bank card)
 
 1. Put this folder in a GitHub repository (private is fine).
-2. On vercel.com sign in with GitHub, open **vercel.com/new** and import the repository. Vercel
-   recognises it as *FastAPI*; leave every setting as it is.
+2. On vercel.com sign in with GitHub, open **vercel.com/new** and import the repository. Check two
+   boxes on that screen: **Root Directory** must be `./` and **Application Preset** must be
+   *FastAPI*. Vercel may offer the `web` folder with *Vite* instead, which would publish the
+   interface with nothing behind it: change both. Leave everything else as it is.
 3. On the same screen open **Environment Variables** and add `DATABASE_URL`, with the string from
    section 5 as its value.
 4. Press **Deploy**. A few minutes later the site is at the `...vercel.app` address it shows.
 5. In the project open **Settings**, **Functions**, **Function Regions**, and choose the region
-   nearest your database (it starts in Washington, D.C.). Then **Deployments**, the newest one,
-   **Redeploy**.
+   your database is in (it starts in Washington, D.C.). Then **Deployments**, the newest one,
+   **Redeploy**. Do not skip this. Measured with the site in Washington and the database in
+   Asia: every click took about half a second longer, saving a project 1.4 s instead of a
+   fraction of that, and the first visit after a quiet spell several seconds more.
 
 That is all. On Vercel, Taki marks its cookies HTTPS-only, uses the site's address in links and
 believes Vercel about each visitor's address without being told (`app.py`, `server/vercel.py`).
@@ -568,6 +572,27 @@ at zero. Lines that would run only between the ground and an unearthed sheet are
 ---
 
 ## 9. What changed
+
+### In version 4.3.3
+
+Found by testing the published site itself, function by function:
+
+* **Report date.** A report carried the date and time of the server's clock, which on a published
+  copy is UTC: hours off for most readers and, around midnight, the wrong day. The browser now
+  sends the reader's own time, and the report and its file name use it.
+* **Quicker start.** The charting library is loaded when a report first needs a figure, not at
+  start, and a database that already has Taki's tables is asked one question at start instead of
+  being sent the whole set-up script. Both matter where Taki is started afresh for each burst of
+  visitors (Vercel) or after every sleep (Render's free plan).
+* **Desktop download.** It carries only the interface files this version loads. A folder copied
+  over an older one kept the older files, and they went into the download.
+* The interface asked for the reference library twice on every page load; now once.
+* Exported files are named with the date of the reader's clock.
+* Section 6: what Vercel's import screen must show, and why the region matters.
+* No calculated number changed.
+
+To update a folder that holds an older version, delete `server/static` in it first, then copy
+the new files over it.
 
 ### In version 4.3.2
 

@@ -111,6 +111,41 @@ def available() -> bool:
         return False
 
 
+def interface_assets() -> Optional[set]:
+    """
+    The names in server/static/assets that the built interface really loads: what index.html
+    names, and what those files name in turn. A folder copied over an older one keeps the
+    older build's files beside the new ones (every name carries a hash of its contents, so
+    nothing overwrites them). They are never loaded, and they do not belong in the download.
+    None when that cannot be worked out; then every file is taken.
+    """
+    folder = _root(*STATIC.split("/"), "assets")
+    try:
+        names = sorted(n for n in os.listdir(folder) if not n.startswith(".") and not n.endswith(".map"))
+        with open(_root(*STATIC.split("/"), "index.html"), "rb") as fh:
+            page = fh.read()
+    except OSError:
+        return None
+    used = {n for n in names if n.encode("utf-8") in page}
+    if not used:
+        return None
+    todo = list(used)
+    while todo:
+        name = todo.pop()
+        if not name.endswith((".js", ".css")):
+            continue
+        try:
+            with open(os.path.join(folder, name), "rb") as fh:
+                text = fh.read()
+        except OSError:
+            return None
+        for other in names:
+            if other not in used and other.encode("utf-8") in text:
+                used.add(other)
+                todo.append(other)
+    return used
+
+
 def files() -> List[Tuple[str, str]]:
     """(path on disk, name inside the zip) for everything that goes in, in a fixed order."""
     out: List[Tuple[str, str]] = []
@@ -129,11 +164,14 @@ def files() -> List[Tuple[str, str]]:
             for n in sorted(names):
                 if n.endswith(kinds) and not n.startswith("."):
                     out.append((os.path.join(folder, n), f"app/{rel}/{n}"))
+    loaded = interface_assets()
     for base, keep in ((STATIC, lambda n: not n.endswith(".map")), (WHEELS, lambda n: n.endswith(".whl"))):
         for folder, dirs, names in os.walk(_root(*base.split("/"))):
             dirs[:] = sorted(d for d in dirs if not d.startswith("."))
             rel = os.path.relpath(folder, config.ROOT).replace(os.sep, "/")
             for n in sorted(names):
+                if rel == STATIC + "/assets" and loaded is not None and n not in loaded:
+                    continue                                 # left over from an older build
                 if keep(n) and not n.startswith("."):
                     out.append((os.path.join(folder, n), f"app/{rel}/{n}"))
     return out

@@ -7,7 +7,7 @@ import { ShareModal } from '@/components/ShareModal';
 import { BrandMark, UserMenu } from '@/components/Shell';
 import { Badge, Button, Confirm, Empty, ErrorNote, Field, MenuButton, Modal, Note, Pill, Spinner, TextInput, cx } from '@/components/ui';
 import { api, saveText } from '@/lib/api';
-import { ago, fmt } from '@/lib/format';
+import { ago, fmt, localDay } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import type { Config, Project, ProjectMeta } from '@/lib/types';
 
@@ -100,7 +100,7 @@ export default function ProjectsPage() {
   const exportAll = async () => {
     try {
       const all = await api.get<{ projects: unknown[] }>('/projects/export');
-      saveText(JSON.stringify(all, null, 1), `taki-projects-${new Date().toISOString().slice(0, 10)}.taki.json`, 'application/json');
+      saveText(JSON.stringify(all, null, 1), `taki-projects-${localDay()}.taki.json`, 'application/json');
       toast(`Exported ${all.projects.length} project${all.projects.length === 1 ? '' : 's'} into one file.`);
     } catch (e: any) { toast(e?.message ?? 'Could not export.', 'error'); }
   };

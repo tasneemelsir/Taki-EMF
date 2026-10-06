@@ -118,7 +118,7 @@ SMTP_PASSWORD = os.environ.get("TAKI_SMTP_PASSWORD", "")
 SMTP_FROM = os.environ.get("TAKI_SMTP_FROM", "").strip()
 SMTP_SECURITY = (os.environ.get("TAKI_SMTP_SECURITY", "starttls").strip().lower() or "starttls")
 ENV_FILE = os.path.join(ROOT, ".env")
-VERSION = "4.3.2"
+VERSION = "4.3.3"
 COOKIE_NAME = "taki_session"
 _WEB = {}
 

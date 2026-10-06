@@ -15,15 +15,32 @@ from __future__ import annotations
 
 import base64
 import math
-from datetime import datetime
+import re
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 import numpy as np
 
-from engine import (ai_report, earth, field_lines, libraries, references, report,
-                    report_figures as rf, shield_engine as sh, standards)
+from engine import ai_report, earth, field_lines, libraries, references, report, shield_engine as sh, standards
 
 from . import service, validation_service
+
+
+class _Figures:
+    """
+    engine.report_figures, loaded when a report first needs a figure. It brings matplotlib,
+    a third of the time Taki takes to start, and most visits never build a report.
+    """
+    _module = None
+
+    def __getattr__(self, name):
+        if _Figures._module is None:
+            from engine import report_figures
+            _Figures._module = report_figures
+        return getattr(_Figures._module, name)
+
+
+rf = _Figures()
 
 DEFAULT_SECTIONS = {
     "summary": True, "objective": True, "configuration": True, "methodology": True,
@@ -764,9 +781,32 @@ def build_doc(cfg: dict, options: Optional[dict] = None, user: Optional[dict] = 
         "project": proj.get("name") or "Untitled project",
         "author": options.get("author") or user.get("name") or "",
         "organisation": options.get("organisation") or user.get("organisation") or "",
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "date": generated_at(options),
         "blocks": blocks,
     }
+
+
+_STAMP = "%Y-%m-%d %H:%M"
+_CLOCKS_APART = timedelta(hours=15)              # the widest gap between UTC and anybody's local time
+
+
+def generated_at(options: dict) -> str:
+    """
+    When the report was made, on the clock of the person who asked for it. The browser
+    sends that as options["generated"]; a published copy's own clock is UTC, which for
+    most readers is hours off and, around midnight, the wrong day. Anything that is not
+    a time, or is further from now than a time zone can explain, is ignored.
+    """
+    stamp = str(options.get("generated") or "").strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", stamp):
+        try:
+            theirs = datetime.strptime(stamp, _STAMP)
+        except ValueError:
+            theirs = None
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        if theirs is not None and abs(theirs - now) <= _CLOCKS_APART:
+            return stamp
+    return datetime.now().strftime(_STAMP)
 
 
 def render(cfg: dict, fmt: str, options: Optional[dict] = None, user: Optional[dict] = None):
@@ -775,7 +815,7 @@ def render(cfg: dict, fmt: str, options: Optional[dict] = None, user: Optional[d
     if fmt == "txt":
         options["with_figures"] = False
     doc = build_doc(cfg, options, user)
-    stamp = datetime.now().strftime("%Y%m%d_%H%M")
+    stamp = doc["date"].replace("-", "").replace(":", "").replace(" ", "_")      # 20261007_0157
     safe = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in doc["project"])[:40] or "Taki"
     if fmt == "pdf":
         return report.build_pdf(doc), "application/pdf", f"Taki_{safe}_{stamp}.pdf"

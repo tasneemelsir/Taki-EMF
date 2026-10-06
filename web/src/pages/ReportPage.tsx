@@ -4,7 +4,7 @@ import { Camera, FileDown, FileText, Sparkles } from 'lucide-react';
 import { AiSetup, useAiChoice } from '@/components/AiSetup';
 import { Badge, Busy, Button, Card, ErrorNote, Field, Note, PageHead, Spinner, Tabs, TextInput } from '@/components/ui';
 import { api, saveText } from '@/lib/api';
-import { STATUS_VAR } from '@/lib/format';
+import { STATUS_VAR, localStamp } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import { Loading } from './common';
 
@@ -59,7 +59,7 @@ export default function ReportPage() {
     let live = true;
     setBusy(true);
     const t = window.setTimeout(() => {
-      api.post<{ doc: Doc; text: string }>('/report/preview', { config, options }).then((r) => { if (live) { setDoc(r); setError(null); } })
+      api.post<{ doc: Doc; text: string }>('/report/preview', { config, options: { ...options, generated: localStamp() } }).then((r) => { if (live) { setDoc(r); setError(null); } })
         .catch((e) => { if (live) setError(e.message); }).finally(() => { if (live) setBusy(false); });
     }, 350);
     return () => { live = false; window.clearTimeout(t); };
@@ -69,7 +69,7 @@ export default function ReportPage() {
   const download = async (fmt: 'pdf' | 'docx' | 'txt') => {
     setBuilding(fmt);
     try {
-      await api.download(`/report/${fmt}`, { config, options: { ...options, twin_png: figs.twin ? twinShot : null } });
+      await api.download(`/report/${fmt}`, { config, options: { ...options, generated: localStamp(), twin_png: figs.twin ? twinShot : null } });
     } catch (e: any) { toast(e?.message ?? 'The report could not be built.', 'error'); }
     setBuilding(null);
   };

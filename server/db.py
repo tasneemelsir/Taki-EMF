@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 import threading
 import time
@@ -99,6 +100,7 @@ CREATE TABLE IF NOT EXISTS shares (
 );
 """
 TABLES = ("users", "sessions", "projects", "scenarios", "password_resets", "shares")   # parents first
+INDEXES = tuple(re.findall(r"CREATE INDEX IF NOT EXISTS (\w+)", SCHEMA))
 _KEYS = {"users": "id", "sessions": "token_hash", "projects": "id", "scenarios": "id",
          "password_resets": "token_hash", "shares": "token"}
 POOL_SIZE = max(1, int(os.environ.get("TAKI_DB_POOL", "5") or 5))
@@ -152,6 +154,9 @@ class _SqliteConn:
             return self.raw.execute(sql, params)
         except sqlite3.IntegrityError as exc:
             raise IntegrityError(str(exc)) from exc
+
+    def ready(self) -> bool:
+        return False                            # the script costs nothing on a local file: always run it
 
     def script(self, sql: str) -> None:
         self.raw.executescript(sql)
@@ -289,6 +294,26 @@ class _PgConn:
             return out
         raise RuntimeError("unreachable")       # pragma: no cover
 
+    def ready(self) -> bool:
+        """
+        Whether this database already holds Taki's tables exactly as script(SCHEMA) leaves them.
+        One question instead of fifteen statements: every process asks when it starts, and on a
+        host that starts Taki afresh for each burst of visitors, with the database in another
+        region, those fifteen answers took seconds. Any doubt means "no", and the script runs.
+        A change to SCHEMA that this cannot see (a new column) must be added to the question.
+        """
+        names = lambda items: ", ".join("'" + n + "'" for n in items)         # noqa: E731  (constants above)
+        try:
+            row = self.execute(
+                "SELECT (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace"
+                "         WHERE n.nspname = current_schema() AND c.relkind = 'r' AND c.relrowsecurity"
+                f"           AND c.relname IN ({names(TABLES)})) AS tables,"
+                "       (SELECT count(*) FROM pg_indexes WHERE schemaname = current_schema()"
+                f"           AND indexname IN ({names(INDEXES)})) AS indexes").fetchone()
+        except Exception:
+            return False
+        return row is not None and row["tables"] == len(TABLES) and row["indexes"] == len(INDEXES)
+
     def script(self, sql: str) -> None:
         for stmt in sql.replace(" REAL ", " DOUBLE PRECISION ").split(";"):
             if stmt.strip():
@@ -347,7 +372,8 @@ def conn():
     if _schema_target != target:
         with _init_lock:
             if _schema_target != target:
-                c.script(SCHEMA)
+                if not c.ready():
+                    c.script(SCHEMA)
                 _schema_target = target
     return c
 

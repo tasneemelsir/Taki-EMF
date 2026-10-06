@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Download, FolderOpen } from 'lucide-react';
 import { Button, Card, Confirm, ErrorNote, Field, Kv, Note, TextInput } from '@/components/ui';
 import { api, saveText } from '@/lib/api';
+import { localDay } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import type { User } from '@/lib/types';
 import { PlainShell } from './ProjectsPage';
@@ -44,7 +45,7 @@ export default function AccountPage() {
   const exportAll = async () => {
     try {
       const all = await api.get<{ projects: unknown[] }>('/projects/export');
-      saveText(JSON.stringify(all, null, 1), `taki-projects-${new Date().toISOString().slice(0, 10)}.taki.json`, 'application/json');
+      saveText(JSON.stringify(all, null, 1), `taki-projects-${localDay()}.taki.json`, 'application/json');
       toast(`Exported ${all.projects.length} project${all.projects.length === 1 ? '' : 's'} into one file.`);
     } catch (e: any) { toast(e?.message ?? 'Could not export.', 'error'); }
   };
