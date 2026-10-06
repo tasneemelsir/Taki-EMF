@@ -46,7 +46,7 @@ PIP_SHA256 = {                                   # the pip that comes with this 
 # server/desktop_package.py (tests/test_desktop.py checks that the two agree).
 TOP = ("run.py", "desktop.py", "requirements.txt", "requirements-desktop.txt", "requirements-desktop.lock",
        "tools/desktop_setup.py", "install-desktop.bat", "start-desktop.sh")
-TREES = {"engine": (".py", ".json"), "server": (".py",)}
+TREES = {"engine": (".py", ".json"), "server": (".py", ".json")}
 STATIC = os.path.join("server", "static")
 WHEELS = os.path.join("tools", "wheels")
 SKIP_DIRS = {"__pycache__", ".pytest_cache", "node_modules", ".git"}

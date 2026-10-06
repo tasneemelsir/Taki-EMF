@@ -39,6 +39,7 @@ export default function ProjectsPage() {
   const desktop = useStore((s) => !!s.meta?.desktop);
   const [projects, setProjects] = useState<ProjectMeta[] | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [examples, setExamples] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [creating, setCreating] = useState<Template | 'pick' | null>(null);
@@ -54,10 +55,14 @@ export default function ProjectsPage() {
       setProjects(r.projects);
     } catch (e: any) { setError(e?.message ?? 'Could not load your projects.'); }
   };
+  const loadExamples = () => {
+    setExamples('loading');
+    api.get<{ templates: Template[] }>('/templates').then((r) => { setTemplates(r.templates); setExamples('ready'); }).catch(() => setExamples('failed'));
+  };
   useEffect(() => {
     closeProject();
     void load();
-    api.get<{ templates: Template[] }>('/templates').then((r) => setTemplates(r.templates)).catch(() => undefined);
+    loadExamples();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -177,7 +182,15 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {templates.length > 0 && (
+        {examples !== 'ready' && (
+          <>
+            <div className="eyebrow mt-24" style={{ marginTop: 32 }}>Start from an example</div>
+            {examples === 'loading'
+              ? <div className="row gap-8 small muted"><Spinner />Loading the examples…</div>
+              : <div className="row gap-8 small muted">The examples could not be loaded.<Button size="sm" onClick={loadExamples}>Try again</Button></div>}
+          </>
+        )}
+        {examples === 'ready' && templates.length > 0 && (
           <>
             <div className="eyebrow mt-24" style={{ marginTop: 32 }}>Start from an example</div>
             <div className="proj-grid">

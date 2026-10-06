@@ -75,6 +75,43 @@ def test_what_changed_shows_the_loading_fix():
     assert items["earth"]["before"] >= items["earth"]["after"]
 
 
+def test_the_kept_numbers_of_the_examples_are_current():
+    """server/templates_cache.json must belong to these examples. If this fails: python tools/make_examples.py"""
+    import json
+    fresh = service.templates(use_kept=False)
+    kept = json.load(open(service.TEMPLATES_FILE, encoding="utf-8"))
+    assert kept["key"] == service.templates_key(fresh), "run: python tools/make_examples.py"
+    assert set(kept["summaries"]) == {t["id"] for t in fresh}
+    for t in fresh:
+        was, now = kept["summaries"][t["id"]], t["summary"]
+        assert now["peak_b"] == pytest.approx(was["peak_b"], rel=1e-5) and now["peak_e"] == pytest.approx(was["peak_e"], rel=1e-5)
+        assert {k: v for k, v in now.items() if not k.startswith("peak")} == {k: v for k, v in was.items() if not k.startswith("peak")}
+
+
+def test_the_examples_are_not_solved_when_their_numbers_are_kept(monkeypatch, tmp_path):
+    def no_solving(cfg):
+        raise AssertionError("an example was solved although its numbers are kept")
+    monkeypatch.setattr(service, "solve", no_solving)
+    ts = service.templates()
+    assert len(ts) == 8 and all(t["summary"]["peak_b"] > 0 and t["summary"]["overall"] for t in ts)
+    monkeypatch.undo()
+    # numbers that belong to other inputs or another version are not used: the examples are worked out
+    solved = []
+    real = service.solve
+    monkeypatch.setattr(service, "solve", lambda cfg: solved.append(1) or real(cfg))
+    stale = tmp_path / "templates_cache.json"
+    stale.write_text('{"key": "something else", "summaries": {"blank": {"peak_b": 999}}}')
+    monkeypatch.setattr(service, "TEMPLATES_FILE", str(stale))
+    ts = service.templates()
+    assert len(solved) == 8 and next(t for t in ts if t["id"] == "blank")["summary"]["peak_b"] < 100
+    stale.write_text("not json")
+    assert len(service.templates()) == 8
+    monkeypatch.setattr(service, "TEMPLATES_FILE", str(tmp_path / "missing.json"))
+    assert service.templates()[0]["summary"]["peak_b"] > 0
+    assert service.write_templates_file(str(tmp_path / "new.json")).endswith("new.json")
+    assert '"key"' in (tmp_path / "new.json").read_text()
+
+
 def test_templates_are_valid_projects():
     ts = service.templates()
     assert len(ts) >= 5

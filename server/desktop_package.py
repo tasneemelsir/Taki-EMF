@@ -28,7 +28,7 @@ from . import config
 TOP = ("run.py", "desktop.py", "requirements.txt", "requirements-desktop.txt", "requirements-desktop.lock",
        "tools/desktop_setup.py", "install-desktop.bat", "start-desktop.sh")
 # Whole folders, and which kinds of file are taken from them.
-TREES = {"engine": (".py", ".json"), "server": (".py",)}
+TREES = {"engine": (".py", ".json"), "server": (".py", ".json")}
 STATIC = "server/static"                # the built interface, taken whole
 WHEELS = "tools/wheels"                 # pip itself, so the installer has one fewer thing to fetch
 SKIP_DIRS = {"__pycache__", ".pytest_cache", "node_modules", ".git"}

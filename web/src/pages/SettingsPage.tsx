@@ -105,6 +105,8 @@ function ChangesTab() {
             <li><b>Install from the browser.</b> The web version can be installed as an app from Chrome, Edge or Safari: the same site in a window of its own, with an icon.</li>
             <li><b>Export all, import all.</b> The projects page writes every project with its scenarios into one file and reads such a file back in. That is the backup, and the way to carry work between the web version and the desktop version.</li>
             <li><b>Quicker to open.</b> The files of the interface are now kept by the browser between visits instead of being asked for again each time.</li>
+            <li><b>4.3.1 · Examples appear at once.</b> On a small server the example projects on the projects page took many seconds to show, with nothing to say they were coming. Their numbers are now kept ready, and the page says so while it loads them.</li>
+            <li><b>4.3.2 · More places to publish it.</b> Taki can now be put on Vercel as it is, free and on a whole processor, and the README compares the hosts with measured times. Nothing changes in the app itself.</li>
           </ul>
           <p className="small muted mt-8" style={{ maxWidth: 860 }}>No calculated number changed in 4.3.</p>
         </Card>

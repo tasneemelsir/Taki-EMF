@@ -13,7 +13,12 @@
 
 FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 MPLBACKEND=Agg \
-    TAKI_HOST=0.0.0.0 TAKI_DATA_DIR=/data
+    TAKI_HOST=0.0.0.0 TAKI_DATA_DIR=/data \
+    OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
+# One maths thread: hosts give a container a slice of a processor but show it all the cores,
+# and a thread per core then spends that slice waiting on each other. Measured at a tenth of a
+# processor, one thread is up to twice as quick. On a host with several whole processors for
+# Taki alone, set both to that number instead.
 WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

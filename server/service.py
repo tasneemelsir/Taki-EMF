@@ -13,6 +13,7 @@ import copy
 import hashlib
 import json
 import math
+import os
 import threading
 from collections import OrderedDict
 from dataclasses import asdict
@@ -23,6 +24,8 @@ import numpy as np
 from engine import (benchmarks, earth, field_lines, libraries, lines as lines_mod, physics,
                     references, shield_engine as sh, shielding, standards, validation)
 from engine.site import Site, normalise_building
+
+from . import config
 
 SCHEMA = 4
 MAX_POINTS = 60
@@ -1490,7 +1493,7 @@ def _building(name, btype, distance, side="right", z=0.0, **over) -> dict:
     return b
 
 
-def templates() -> List[dict]:
+def templates(use_kept: bool = True) -> List[dict]:
     """Ready-made starting points shown on the Projects page."""
     presets = list(lines_mod.tower_presets())
     p132 = next((p for p in presets if p.startswith("132")), presets[0])
@@ -1592,6 +1595,16 @@ def templates() -> List[dict]:
 
     for t in out:
         t["config"] = normalise_config(t["config"])
+    # The cards show a few numbers of each example. Working them out means solving all eight,
+    # which a small server needs many seconds for, every time it wakes. So the numbers are kept
+    # in a file beside this one (tools/make_examples.py writes it), and used when they belong to
+    # exactly these examples in exactly this version; otherwise they are worked out here.
+    key = templates_key(out)
+    kept = _kept_summaries(key) if use_kept else None
+    for t in out:
+        if kept is not None and t["id"] in kept:
+            t["summary"] = kept[t["id"]]
+            continue
         try:
             s = solve(t["config"])
             t["summary"] = {"peak_b": s["peak_b"], "peak_e": s["peak_e"], "overall": s["overall"],
@@ -1600,6 +1613,34 @@ def templates() -> List[dict]:
         except Exception:
             t["summary"] = {}
     return out
+
+
+TEMPLATES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates_cache.json")
+
+
+def templates_key(items: List[dict]) -> str:
+    """What the kept numbers belong to: this version and these exact inputs."""
+    blob = json.dumps([config.VERSION] + [[t["id"], t["config"]] for t in items], sort_keys=True)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def _kept_summaries(key: str) -> Optional[dict]:
+    try:
+        with open(TEMPLATES_FILE, encoding="utf-8") as fh:
+            kept = json.load(fh)
+        return kept["summaries"] if kept.get("key") == key else None
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def write_templates_file(path: Optional[str] = None) -> str:
+    """Work the examples out afresh and keep their numbers (run by tools/make_examples.py)."""
+    items = templates(use_kept=False)
+    with open(path or TEMPLATES_FILE, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump({"key": templates_key(items), "version": config.VERSION,
+                   "summaries": {t["id"]: t["summary"] for t in items}}, fh, indent=1, sort_keys=True)
+        fh.write("\n")
+    return path or TEMPLATES_FILE
 
 
 # ---------------------------------------------------------------------------

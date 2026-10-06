@@ -340,9 +340,78 @@ already have on this computer, and saves the setting in a file called `.env`. It
 
 ## 6. Put it on the internet
 
-Taki is one Python server, so any host that runs a Docker container or a Python process will do.
-Two things matter: use an **online database** (section 5), because most hosts wipe their own disk
-on every deploy, and serve it over **HTTPS**.
+Taki is one Python server, so any host that runs a Docker container or a Python process will do,
+and so will Vercel, which runs neither (below). Two things matter everywhere: use an **online
+database** (section 5), because hosts wipe their own disk on every deploy, and serve it over
+**HTTPS**.
+
+### Which host
+
+What decides how Taki feels is how much of a processor the host gives it. Measured with the
+school example, on one maths thread:
+
+| Share of a processor | Field map | 3-D field volume | PDF report |
+|---|---|---|---|
+| a tenth (Render free) | 17 s | 52 s | 38 s |
+| a half (Render Starter) | 3 s | 10 s | 7 s |
+| a whole one (Vercel, Cloud Run) | 1.3 s | 4 s | 3.5 s |
+
+| Host | Cost | Processor | When nobody visits | Bank card |
+|---|---|---|---|---|
+| Render, free plan | free | a tenth | sleeps after 15 min, about a minute to wake | no |
+| Vercel, Hobby plan | free | a whole one | starts in a few seconds on the next visit | no |
+| Google Cloud Run | free up to 50 processor-hours a month | a whole one | starts in a few seconds on the next visit | yes |
+| Render, Starter | $7 a month | a half | stays awake | yes |
+
+The free plans have conditions of their own. Vercel's is for personal, non-commercial use and
+allows 4 hours of processor time a month: after that the site is paused until 30 days have
+passed. Cloud Run charges the card for whatever goes beyond its monthly allowance. Plans and
+prices are the hosts' and change; these were read in October 2026.
+
+The same repository can be on two hosts at once. With the same `DATABASE_URL` they show the
+same accounts and projects, so a second host can be tried without giving up the first.
+
+### Vercel (free, no bank card)
+
+1. Put this folder in a GitHub repository (private is fine).
+2. On vercel.com sign in with GitHub, open **vercel.com/new** and import the repository. Vercel
+   recognises it as *FastAPI*; leave every setting as it is.
+3. On the same screen open **Environment Variables** and add `DATABASE_URL`, with the string from
+   section 5 as its value.
+4. Press **Deploy**. A few minutes later the site is at the `...vercel.app` address it shows.
+5. In the project open **Settings**, **Functions**, **Function Regions**, and choose the region
+   nearest your database (it starts in Washington, D.C.). Then **Deployments**, the newest one,
+   **Redeploy**.
+
+That is all. On Vercel, Taki marks its cookies HTTPS-only, uses the site's address in links and
+believes Vercel about each visitor's address without being told (`app.py`, `server/vercel.py`).
+A database added through Vercel's own storage page is found as well.
+
+* Vercel does not use the `Dockerfile`. It runs Taki as a function that starts when someone opens
+  the site and is frozen between requests: the first page after a quiet spell takes a few seconds.
+* Without `DATABASE_URL` every page says that it is missing, and how to add it. Nothing can be
+  kept on Vercel's own disk.
+* A change of an environment variable takes effect with the next deploy: **Redeploy** after it.
+* Every push to GitHub is deployed by itself.
+
+### Google Cloud Run (free allowance, bank card on file)
+
+Cloud Run builds the `Dockerfile` as it is. In the Google Cloud console:
+
+1. Create a project and switch billing on for it. This is where the card is asked for.
+2. **Cloud Run**, **Create service**, **Continuously deploy from a repository**, **Set up with
+   Cloud Build**: choose the GitHub repository, branch `main`, build type **Dockerfile**.
+3. Region: the one nearest your database. Authentication: **Allow public access**. Billing:
+   **Request-based**. Scaling: at least 0 instances, at most 1.
+4. Under **Containers**: 1 CPU and 1 GiB of memory, the port as it is (Taki listens on the port
+   it is given), and these variables: `DATABASE_URL`, `TAKI_SECURE_COOKIES` = `1`,
+   `TAKI_TRUSTED_PROXIES` = `*`.
+5. **Create**. When it shows the site's address, add that as `TAKI_PUBLIC_URL` and deploy again.
+
+Then open `/api/health` on the site: it must say `"database":"postgresql"`. If it says `sqlite`,
+the database variable is missing, and accounts would be lost whenever the site goes to sleep.
+With "at most 1 instance" and request-based billing the allowance covers about 50 hours of
+actual calculating a month; set a budget alert in the console all the same.
 
 ### Render (has a free plan)
 
@@ -353,7 +422,7 @@ on every deploy, and serve it over **HTTPS**.
    address Render gives the site, e.g. `https://taki.onrender.com`).
 
 On Render's free plan the site sleeps after 15 minutes without visitors and takes about a minute
-to wake. A paid instance, or any other container host, removes that.
+to wake, and it has a tenth of a processor (the table above). A paid instance removes both.
 
 ### Docker anywhere
 
@@ -500,6 +569,23 @@ at zero. Lines that would run only between the ground and an unearthed sheet are
 
 ## 9. What changed
 
+### In version 4.3.2
+
+* **Vercel**: Taki can be published there as it is, free and without a bank card, on a whole
+  processor (section 6). `app.py` is the entrance Vercel looks for; `server/vercel.py` holds what
+  differs there. Nothing changes for a computer, Docker or Render.
+* Section 6 compares the hosts, with measured times, and has the steps for Google Cloud Run.
+* No calculated number changed.
+
+### In version 4.3.1
+
+* The example projects on the projects page appear at once. On a small server they took many
+  seconds, with nothing on the page to say they were coming: their numbers are now kept ready
+  (`server/templates_cache.json`, written by `python tools/make_examples.py`), and the page shows
+  that it is loading them.
+* The container runs the maths on one thread, which is quicker on a host that gives it a slice
+  of a processor.
+
 ### In version 4.3
 
 * **Desktop version**: Taki as a program on one computer, with its own window, no sign-in and no
@@ -570,6 +656,7 @@ check-database.*        confirm which database is in use and that it answers
 requirements.txt        Python packages
 .env.example            every setting, commented
 Dockerfile, render.yaml container image and Render blueprint
+app.py                  the entrance Vercel uses; nothing else reads it
 
 desktop.py              the desktop version: what its icon runs
 install-desktop.bat     its installer for Windows (fetches Python, then runs tools/desktop_setup.py)
@@ -598,18 +685,21 @@ server/                 the web server
   manage.py               the commands behind run.py
   desktop.py              the desktop version: launcher, window, when to stop
   desktop_package.py      the desktop download, built from the files this copy runs on
+  vercel.py               what differs on Vercel: settings, the visitor's address, no local disk
   static/                 the built web interface
 
 tools/
   desktop_setup.py        what the Windows installer does once it has a Python: copy, install,
                           check, shortcuts; and the uninstaller
   make_lock.py            writes requirements-desktop.lock
+  make_examples.py        writes server/templates_cache.json, the numbers on the example cards
   make_icons.py           draws the icons from the logo
   wheels/                 pip itself, carried along for the installer
 
 web/                    source of the interface (React, TypeScript, three.js, Plotly)
-tests/                  about 230 tests: physics, circuits, standards, shields, pages, reports,
-                        the AI requests (no network), accounts, database, the desktop version
+tests/                  about 250 tests: physics, circuits, standards, shields, pages, reports,
+                        the AI requests (no network), accounts, database, the desktop version,
+                        publishing on Vercel
 ```
 
 ---
@@ -641,6 +731,9 @@ npm run dev          live reload on :5173, with the API on :8000
 ```
 
 `http://localhost:8000/api/docs` lists every API route.
+
+**The examples.** After changing an example, the engine or the version number, run
+`python tools/make_examples.py`; a test fails until you do.
 
 **The desktop version.** `python run.py desktop --window none` starts it without a window and
 prints its address; `--data-dir` keeps its data away from yours. After changing

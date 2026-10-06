@@ -1,0 +1,95 @@
+{
+ "key": "77d034cc990249cb618cbbe4e79bc1121e3f740464c1a6a86399084d2018daca",
+ "summaries": {
+  "barrier": {
+   "buildings": 1,
+   "kv": [
+    275.0
+   ],
+   "lines": 1,
+   "overall": "PASS",
+   "peak_b": 3.676896,
+   "peak_e": 0.604854,
+   "shield": true
+  },
+  "blank": {
+   "buildings": 1,
+   "kv": [
+    132.0
+   ],
+   "lines": 1,
+   "overall": "PASS",
+   "peak_b": 2.459356,
+   "peak_e": 0.354818,
+   "shield": false
+  },
+  "corridor": {
+   "buildings": 2,
+   "kv": [
+    275.0,
+    500.0
+   ],
+   "lines": 2,
+   "overall": "PASS",
+   "peak_b": 5.893148,
+   "peak_e": 1.584956,
+   "shield": false
+  },
+  "enclosure": {
+   "buildings": 1,
+   "kv": [
+    275.0
+   ],
+   "lines": 1,
+   "overall": "PASS",
+   "peak_b": 4.45802,
+   "peak_e": 0.623098,
+   "shield": true
+  },
+  "housing": {
+   "buildings": 2,
+   "kv": [
+    132.0
+   ],
+   "lines": 1,
+   "overall": "FAIL",
+   "peak_b": 1.518074,
+   "peak_e": 0.321116,
+   "shield": true
+  },
+  "quad": {
+   "buildings": 1,
+   "kv": [
+    275.0
+   ],
+   "lines": 1,
+   "overall": "PASS",
+   "peak_b": 2.663395,
+   "peak_e": 0.518229,
+   "shield": false
+  },
+  "room": {
+   "buildings": 1,
+   "kv": [
+    275.0
+   ],
+   "lines": 1,
+   "overall": "PASS",
+   "peak_b": 3.930129,
+   "peak_e": 0.61052,
+   "shield": true
+  },
+  "school": {
+   "buildings": 1,
+   "kv": [
+    275.0
+   ],
+   "lines": 1,
+   "overall": "FAIL",
+   "peak_b": 3.676917,
+   "peak_e": 0.604855,
+   "shield": true
+  }
+ },
+ "version": "4.3.2"
+}
