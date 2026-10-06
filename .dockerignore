@@ -1,0 +1,19 @@
+web/
+data
+.env
+.venv
+**/__pycache__
+.pytest_cache
+*.log
+.git
+tests
+*.md
+# Of the scripts and tools, only what the desktop download carries goes into the image.
+*.bat
+*.sh
+tools/*
+!install-desktop.bat
+!start-desktop.sh
+!tools/desktop_setup.py
+!tools/wheels
+!tools/wheels/*

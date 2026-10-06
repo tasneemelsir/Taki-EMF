@@ -1,0 +1,727 @@
+{
+  "schema_version": 1,
+  "id": "fikry2022_f1000research",
+  "title": "EMI radiation of power transmission lines in Malaysia",
+  "data_type": "simulated",
+  "citation": {
+    "authors": "Fikry A, Lim SC, Ab Kadir MZA",
+    "title": "EMI radiation of power transmission lines in Malaysia",
+    "container": "F1000Research",
+    "version": "version 2; peer review: 2 approved",
+    "year": 2022,
+    "volume": "10",
+    "article_number": "1136",
+    "doi": "10.12688/f1000research.73067.2",
+    "url": "https://doi.org/10.12688/f1000research.73067.2",
+    "article_license": "CC-BY 4.0",
+    "data_doi": "10.6084/m9.figshare.16577423.v2",
+    "data_license": "CC0 1.0 (public domain dedication)"
+  },
+  "method": {
+    "solver": "EMFACDC v2.0 (ITU-T Recommendation K.90, Appendix II)",
+    "solver_url": "https://www.itu.int/rec/T-REC-K.90-201905-I!Amd1/en",
+    "b_field_method": "Complex phasor superposition of infinite straight-conductor Biot-Savart contributions",
+    "e_field_method": "Method of images with Maxwell potential coefficient matrix",
+    "measurement_height_m": 1.0,
+    "centreline_x_m": 0.0,
+    "current_basis": "rated current for each conductor",
+    "plotted_domain_x_m": [
+      -30.0,
+      30.0
+    ],
+    "plotted_domain_y_m": [
+      0.0,
+      40.0
+    ],
+    "step_m": 0.1
+  },
+  "provenance_notes": [
+    "SIMULATED, NOT MEASURED. These values come from a numerical solver, so comparing Taki against them is code-to-code verification (does Taki's implementation agree with an established ITU-referenced tool?), not validation against physical reality.",
+    "The ROW boundary distance is not stated in the article body; it is referred to the Suruhanjaya Tenaga wayleave values per line type. Every row_boundary point therefore has distance_m = null and must not be plotted against a distance axis until that figure is supplied.",
+    "The article cites IEEE Std C37.1 for the 1 m measurement height. C37.1 covers SCADA and automatic control systems; IEEE Std 644 is the standard normally cited for power-line field measurement height. The 1 m height itself is conventional and consistent with Taki's own 1 m profile.",
+    "Conductor geometry is transcribed in full for two of the five line types only (Tables 2 and 3). The other three are available in the Figshare dataset.",
+    "Ground condition is a modelled binary (conducting / non-conducting) in the source. Taki's physics engine assumes a perfectly conducting ground plane for the E-field method of images, so the 'conducting' rows are the like-for-like comparison set."
+  ],
+  "comparison_caveats": [
+    {
+      "id": "sqrt2_scale_factor",
+      "affects": "B",
+      "severity": "high",
+      "status": "unresolved",
+      "summary": "Taki reads high by exactly sqrt(2) against this source, universally.",
+      "detail": "Across all four published geometries x both ground conditions (8 independent comparisons), the ratio Taki/reference is 1.4142 to four decimal places, independent of geometry, phasing and ground model. This is a pure convention constant, not a geometry or physics error. Taki computes the resultant as sqrt(|Bx|^2 + |By|^2) from RMS current phasors, which is the standard RMS resultant used for ICNIRP comparison. The reference uses the National Grid in-phase / out-of-phase decomposition. The discrepancy has NOT been resolved and Taki's scaling has deliberately NOT been altered: rescaling a compliance tool on an unproven inference would be worse than a documented open question. Resolve by working through the reference solver's normalisation before quoting absolute agreement with this source."
+    },
+    {
+      "id": "ground_model_validated",
+      "affects": "B",
+      "severity": "none",
+      "status": "resolved",
+      "summary": "Earth-return model VALIDATED against this source.",
+      "detail": "With earth.py applied, the ratio between conducting-ground and non-conducting-ground results matches the reference to four decimal places in all four cases (1.9015, 0.5888, 1.8751, 0.8165). Taki's PERFECT_CONDUCTOR model corresponds to the reference's conducting-ground rows and FREE_SPACE to its non-conducting rows."
+    },
+    {
+      "id": "transposition_benefit_RETRACTED",
+      "affects": "B",
+      "severity": "none",
+      "status": "retracted",
+      "summary": "RETRACTED: Taki does NOT understate the benefit of transposition.",
+      "detail": "An earlier analysis, made before the earth-return model existed, concluded that Taki understated the field reduction achieved by transposed phasing. That was an artifact of comparing a free-space Taki result against conducting-ground reference values. With the ground model applied the transposition ratios agree exactly. Retained here so the incorrect conclusion is not repeated."
+    },
+    {
+      "id": "conductor_radius_unpublished",
+      "affects": "E",
+      "severity": "medium",
+      "status": "open",
+      "summary": "Conductor radius and bundling are not published in this source, and E field depends on both.",
+      "detail": "Taki falls back to conductor_radius_m = 0.015 m when no radius is supplied. The reference tables give no radius or bundle configuration, though a 500 kV line would normally be bundled, giving a much larger equivalent radius. Obtain the radius from the Figshare dataset before quoting E-field agreement."
+    },
+    {
+      "id": "e_field_ground_model",
+      "affects": "E",
+      "severity": "low",
+      "status": "open",
+      "summary": "Compare E only against the conducting-ground rows.",
+      "detail": "Taki's E-field solver uses the method of images, which assumes a perfectly conducting ground plane. The reference's non-conducting rows model a different assumption and are not like-for-like."
+    },
+    {
+      "id": "phase_convention_ruled_out",
+      "affects": "B",
+      "severity": "none",
+      "status": "resolved",
+      "summary": "Phase-angle convention is NOT a source of discrepancy.",
+      "detail": "Taki uses A=0, B=-120, C=+120; the reference uses A=0, B=+120, C=+240. Tested directly: computed |B| is identical under both, because reversing the phase sequence conjugates the entire current set and leaves the magnitude unchanged."
+    }
+  ],
+  "tower_geometries": {
+    "132kV_DC": {
+      "available": false,
+      "reason": "Conductor geometry for this line type is published in the Figshare underlying dataset (doi:10.6084/m9.figshare.16577423.v2) rather than in the article body. Not transcribed here — obtain from the dataset before using this configuration for like-for-like comparison."
+    },
+    "275kV_DC": {
+      "available": false,
+      "reason": "Conductor geometry for this line type is published in the Figshare underlying dataset (doi:10.6084/m9.figshare.16577423.v2) rather than in the article body. Not transcribed here — obtain from the dataset before using this configuration for like-for-like comparison."
+    },
+    "132_132kV_QC": {
+      "available": false,
+      "reason": "Conductor geometry for this line type is published in the Figshare underlying dataset (doi:10.6084/m9.figshare.16577423.v2) rather than in the article body. Not transcribed here — obtain from the dataset before using this configuration for like-for-like comparison."
+    },
+    "275_132kV_QC": {
+      "available": true,
+      "source_table": "Table 2",
+      "conductors": [
+        {
+          "phase_untransposed": "A1",
+          "phase_transposed": "A1",
+          "x_m": -6.0,
+          "y_m": 43.13,
+          "current_A": 1232,
+          "voltage_kV": 275
+        },
+        {
+          "phase_untransposed": "B1",
+          "phase_transposed": "B1",
+          "x_m": -6.0,
+          "y_m": 37.58,
+          "current_A": 1232,
+          "voltage_kV": 275
+        },
+        {
+          "phase_untransposed": "C1",
+          "phase_transposed": "C1",
+          "x_m": -6.0,
+          "y_m": 32.03,
+          "current_A": 1232,
+          "voltage_kV": 275
+        },
+        {
+          "phase_untransposed": "A2",
+          "phase_transposed": "C2",
+          "x_m": 6.0,
+          "y_m": 43.13,
+          "current_A": 1232,
+          "voltage_kV": 275
+        },
+        {
+          "phase_untransposed": "B2",
+          "phase_transposed": "B2",
+          "x_m": 6.0,
+          "y_m": 37.58,
+          "current_A": 1232,
+          "voltage_kV": 275
+        },
+        {
+          "phase_untransposed": "C2",
+          "phase_transposed": "A2",
+          "x_m": 6.0,
+          "y_m": 32.03,
+          "current_A": 1232,
+          "voltage_kV": 275
+        },
+        {
+          "phase_untransposed": "a1",
+          "phase_transposed": "c1",
+          "x_m": -5.2,
+          "y_m": 24.31,
+          "current_A": 729,
+          "voltage_kV": 132
+        },
+        {
+          "phase_untransposed": "b1",
+          "phase_transposed": "b1",
+          "x_m": -5.2,
+          "y_m": 20.43,
+          "current_A": 729,
+          "voltage_kV": 132
+        },
+        {
+          "phase_untransposed": "c1",
+          "phase_transposed": "a1",
+          "x_m": -5.2,
+          "y_m": 16.55,
+          "current_A": 729,
+          "voltage_kV": 132
+        },
+        {
+          "phase_untransposed": "a2",
+          "phase_transposed": "a2",
+          "x_m": 5.2,
+          "y_m": 24.31,
+          "current_A": 729,
+          "voltage_kV": 132
+        },
+        {
+          "phase_untransposed": "b2",
+          "phase_transposed": "b2",
+          "x_m": 5.2,
+          "y_m": 20.43,
+          "current_A": 729,
+          "voltage_kV": 132
+        },
+        {
+          "phase_untransposed": "c2",
+          "phase_transposed": "c2",
+          "x_m": 5.2,
+          "y_m": 16.55,
+          "current_A": 729,
+          "voltage_kV": 132
+        }
+      ]
+    },
+    "500kV_DC": {
+      "available": true,
+      "source_table": "Table 3",
+      "conductors": [
+        {
+          "phase_untransposed": "A1",
+          "phase_transposed": "A1",
+          "x_m": -6.2,
+          "y_m": 47.5,
+          "current_A": 2309.4,
+          "voltage_kV": 500
+        },
+        {
+          "phase_untransposed": "B1",
+          "phase_transposed": "B1",
+          "x_m": -6.2,
+          "y_m": 36.5,
+          "current_A": 2309.4,
+          "voltage_kV": 500
+        },
+        {
+          "phase_untransposed": "C1",
+          "phase_transposed": "C1",
+          "x_m": -7.0,
+          "y_m": 25.25,
+          "current_A": 2309.4,
+          "voltage_kV": 500
+        },
+        {
+          "phase_untransposed": "A2",
+          "phase_transposed": "C2",
+          "x_m": 6.2,
+          "y_m": 47.5,
+          "current_A": 2309.4,
+          "voltage_kV": 500
+        },
+        {
+          "phase_untransposed": "B2",
+          "phase_transposed": "B2",
+          "x_m": 6.2,
+          "y_m": 36.5,
+          "current_A": 2309.4,
+          "voltage_kV": 500
+        },
+        {
+          "phase_untransposed": "C2",
+          "phase_transposed": "A2",
+          "x_m": 7.0,
+          "y_m": 25.25,
+          "current_A": 2309.4,
+          "voltage_kV": 500
+        }
+      ]
+    }
+  },
+  "datasets": [
+    {
+      "id": "132kV_DC__untransposed__cond",
+      "line_type": "132kV_DC",
+      "line_type_label": "132 kV double circuit",
+      "phasing": "untransposed",
+      "ground_conducting": true,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 4.794284,
+          "e_field_kVm": 0.924003
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 0.253069,
+          "e_field_kVm": 0.24556
+        }
+      ]
+    },
+    {
+      "id": "132kV_DC__transposed__cond",
+      "line_type": "132kV_DC",
+      "line_type_label": "132 kV double circuit",
+      "phasing": "transposed",
+      "ground_conducting": true,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 0.545671,
+          "e_field_kVm": 0.15441
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 0.624946,
+          "e_field_kVm": 0.17748
+        }
+      ]
+    },
+    {
+      "id": "132kV_DC__untransposed__noncond",
+      "line_type": "132kV_DC",
+      "line_type_label": "132 kV double circuit",
+      "phasing": "untransposed",
+      "ground_conducting": false,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 2.6043,
+          "e_field_kVm": 0.263679
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 1.4302,
+          "e_field_kVm": 0.17961
+        }
+      ]
+    },
+    {
+      "id": "132kV_DC__transposed__noncond",
+      "line_type": "132kV_DC",
+      "line_type_label": "132 kV double circuit",
+      "phasing": "transposed",
+      "ground_conducting": false,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 1.3384,
+          "e_field_kVm": 0.182788
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 0.4673,
+          "e_field_kVm": 0.121504
+        }
+      ]
+    },
+    {
+      "id": "275kV_DC__untransposed__cond",
+      "line_type": "275kV_DC",
+      "line_type_label": "275 kV double circuit",
+      "phasing": "untransposed",
+      "ground_conducting": true,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 3.928109,
+          "e_field_kVm": 1.50842
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 0.960835,
+          "e_field_kVm": 0.574706
+        }
+      ]
+    },
+    {
+      "id": "275kV_DC__transposed__cond",
+      "line_type": "275kV_DC",
+      "line_type_label": "275 kV double circuit",
+      "phasing": "transposed",
+      "ground_conducting": true,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 0.443016,
+          "e_field_kVm": 0.222091
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 1.074408,
+          "e_field_kVm": 0.450741
+        }
+      ]
+    },
+    {
+      "id": "275kV_DC__untransposed__noncond",
+      "line_type": "275kV_DC",
+      "line_type_label": "275 kV double circuit",
+      "phasing": "untransposed",
+      "ground_conducting": false,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 2.088845,
+          "e_field_kVm": 0.394063
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 1.494544,
+          "e_field_kVm": 0.305229
+        }
+      ]
+    },
+    {
+      "id": "275kV_DC__transposed__noncond",
+      "line_type": "275kV_DC",
+      "line_type_label": "275 kV double circuit",
+      "phasing": "transposed",
+      "ground_conducting": false,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 1.263348,
+          "e_field_kVm": 0.276856
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 0.636509,
+          "e_field_kVm": 0.181895
+        }
+      ]
+    },
+    {
+      "id": "132_132kV_QC__untransposed__cond",
+      "line_type": "132_132kV_QC",
+      "line_type_label": "132/132 kV quadruple circuit",
+      "phasing": "untransposed",
+      "ground_conducting": true,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 13.62006,
+          "e_field_kVm": 1.12788
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 2.978469,
+          "e_field_kVm": 0.367053
+        }
+      ]
+    },
+    {
+      "id": "132_132kV_QC__transposed__cond",
+      "line_type": "132_132kV_QC",
+      "line_type_label": "132/132 kV quadruple circuit",
+      "phasing": "transposed",
+      "ground_conducting": true,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 1.13004,
+          "e_field_kVm": 0.354182
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 0.340224,
+          "e_field_kVm": 0.319246
+        }
+      ]
+    },
+    {
+      "id": "132_132kV_QC__untransposed__noncond",
+      "line_type": "132_132kV_QC",
+      "line_type_label": "132/132 kV quadruple circuit",
+      "phasing": "untransposed",
+      "ground_conducting": false,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 7.28901,
+          "e_field_kVm": 0.321052
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 4.670191,
+          "e_field_kVm": 0.211805
+        }
+      ]
+    },
+    {
+      "id": "132_132kV_QC__transposed__noncond",
+      "line_type": "132_132kV_QC",
+      "line_type_label": "132/132 kV quadruple circuit",
+      "phasing": "transposed",
+      "ground_conducting": false,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 1.493262,
+          "e_field_kVm": 0.105488
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 0.676831,
+          "e_field_kVm": 0.081465
+        }
+      ]
+    },
+    {
+      "id": "275_132kV_QC__untransposed__cond",
+      "line_type": "275_132kV_QC",
+      "line_type_label": "275/132 kV quadruple circuit",
+      "phasing": "untransposed",
+      "ground_conducting": true,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 10.13539,
+          "e_field_kVm": 1.48149
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 2.489524,
+          "e_field_kVm": 0.57809
+        }
+      ]
+    },
+    {
+      "id": "275_132kV_QC__transposed__cond",
+      "line_type": "275_132kV_QC",
+      "line_type_label": "275/132 kV quadruple circuit",
+      "phasing": "transposed",
+      "ground_conducting": true,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 0.909531,
+          "e_field_kVm": 0.534335
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 0.18436,
+          "e_field_kVm": 0.450279
+        }
+      ]
+    },
+    {
+      "id": "275_132kV_QC__untransposed__noncond",
+      "line_type": "275_132kV_QC",
+      "line_type_label": "275/132 kV quadruple circuit",
+      "phasing": "untransposed",
+      "ground_conducting": false,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 5.405135,
+          "e_field_kVm": 0.457699
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 3.546732,
+          "e_field_kVm": 0.31446
+        }
+      ]
+    },
+    {
+      "id": "275_132kV_QC__transposed__noncond",
+      "line_type": "275_132kV_QC",
+      "line_type_label": "275/132 kV quadruple circuit",
+      "phasing": "transposed",
+      "ground_conducting": false,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 1.113876,
+          "e_field_kVm": 0.135271
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 0.588538,
+          "e_field_kVm": 0.113173
+        }
+      ]
+    },
+    {
+      "id": "500kV_DC__untransposed__cond",
+      "line_type": "500kV_DC",
+      "line_type_label": "500 kV double circuit",
+      "phasing": "untransposed",
+      "ground_conducting": true,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 18.43185,
+          "e_field_kVm": 3.08961
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 4.860459,
+          "e_field_kVm": 1.09486
+        }
+      ]
+    },
+    {
+      "id": "500kV_DC__transposed__cond",
+      "line_type": "500kV_DC",
+      "line_type_label": "500 kV double circuit",
+      "phasing": "transposed",
+      "ground_conducting": true,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 2.857379,
+          "e_field_kVm": 0.651354
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 4.293753,
+          "e_field_kVm": 0.74896
+        }
+      ]
+    },
+    {
+      "id": "500kV_DC__untransposed__noncond",
+      "line_type": "500kV_DC",
+      "line_type_label": "500 kV double circuit",
+      "phasing": "untransposed",
+      "ground_conducting": false,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 9.693522,
+          "e_field_kVm": 0.724198
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 6.762919,
+          "e_field_kVm": 0.539665
+        }
+      ]
+    },
+    {
+      "id": "500kV_DC__transposed__noncond",
+      "line_type": "500kV_DC",
+      "line_type_label": "500 kV double circuit",
+      "phasing": "transposed",
+      "ground_conducting": false,
+      "points": [
+        {
+          "location": "under_line",
+          "distance_m": 0.0,
+          "distance_known": true,
+          "b_field_uT": 4.852491,
+          "e_field_kVm": 0.414757
+        },
+        {
+          "location": "row_boundary",
+          "distance_m": null,
+          "distance_known": false,
+          "b_field_uT": 2.516856,
+          "e_field_kVm": 0.232802
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+# Render blueprint: New + -> Blueprint -> pick the repository holding this file.
+# Render builds the Dockerfile and asks for the two values marked "sync: false".
+services:
+  - type: web
+    name: taki
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL          # the connection string from Supabase or Neon
+        sync: false
+      - key: TAKI_PUBLIC_URL       # the address Render gives the site, e.g. https://taki.onrender.com
+        sync: false
+      - key: TAKI_SECURE_COOKIES
+        value: "1"
+      - key: TAKI_TRUSTED_PROXIES
+        value: "*"

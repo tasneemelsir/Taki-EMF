@@ -1,0 +1,10 @@
+# Taki - what the desktop version needs (Python 3.10 or newer).
+# The same as requirements.txt without the online-database driver.
+# The exact versions the desktop version installs are in requirements-desktop.lock;
+# after changing this file, make that one again:  python tools/make_lock.py
+fastapi>=0.110
+uvicorn>=0.29
+numpy>=1.26
+matplotlib>=3.8
+reportlab>=4.0
+python-docx>=1.1

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Taki - electric and magnetic field simulation, shielding design and a 3-D digital twin for high-voltage transmission lines." />
+    <meta name="theme-color" content="#004B87" />
+    <meta name="application-name" content="Taki" />
+    <meta name="apple-mobile-web-app-title" content="Taki" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>Taki | EMF simulation and shielding</title>
+    <script>
+      // The saved theme, before anything is drawn: no white flash on the way into the dark one.
+      try { if (localStorage.getItem('taki.theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) { /* no storage */ }
+    </script>
+    <script type="module" crossorigin src="/assets/index-r6gq14Q6.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/plotly-TwPhzy26.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-D8k3og-0.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
