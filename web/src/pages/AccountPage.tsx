@@ -9,7 +9,7 @@ import type { User } from '@/lib/types';
 import { PlainShell } from './ProjectsPage';
 
 export default function AccountPage() {
-  const { user, setUser, toast, meta } = useStore();
+  const { user, setUser, leave, toast, meta } = useStore();
   const nav = useNavigate();
   const [name, setName] = useState(user?.name ?? '');
   const [organisation, setOrganisation] = useState(user?.organisation ?? '');
@@ -35,7 +35,7 @@ export default function AccountPage() {
     catch (e: any) { setPwError(e?.message ?? 'Could not change the password.'); }
   };
   const deleteAccount = async () => {
-    try { await api.post('/auth/delete', { password: delPw }); setUser(null); nav('/login'); }
+    try { await api.post('/auth/delete', { password: delPw }); leave(); nav('/login', { replace: true }); }
     catch (e: any) { toast(e?.message ?? 'Could not delete the account.', 'error'); }
   };
   const openFolder = async () => {
@@ -87,7 +87,7 @@ export default function AccountPage() {
 
         {user.is_guest ? (
           <Card title="Guest session">
-            <p className="small">You are working without an account. Projects are tied to this browser and will be lost if its site data is cleared.</p>
+            <p className="small">You are working without an account. Projects are tied to this browser and will be lost if its site data is cleared or you sign out.</p>
             <Link className="btn primary mt-8" to="/register">Create an account and keep my projects</Link>
           </Card>
         ) : (

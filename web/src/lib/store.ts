@@ -17,6 +17,8 @@ interface State {
   booted: boolean;
   meta: Meta | null;
   user: User | null;
+  /** The last person here signed out or removed their account, rather than losing the session. */
+  left: boolean;
   library: Library | null;
 
   project: Project | null;
@@ -41,6 +43,7 @@ interface State {
 
   boot: () => Promise<void>;
   setUser: (u: User | null) => void;
+  leave: () => void;
   loadLibrary: () => Promise<void>;
   openProject: (id: string) => Promise<void>;
   closeProject: () => void;
@@ -79,6 +82,8 @@ let solveAbort: AbortController | null = null;
 let toastId = 1;
 let libraryLoading: Promise<void> | null = null;
 const MAX_HISTORY = 60;
+/** What is left of the open work once nobody is signed in. */
+const NOBODY = { project: null, config: null, sol: null, library: null, past: [] as Config[], future: [] as Config[] };
 
 function initialTheme(): 'light' | 'dark' {
   try {
@@ -118,7 +123,7 @@ export const useStore = create<State>((set, get) => {
   };
 
   return {
-    booted: false, meta: null, user: null, library: null,
+    booted: false, meta: null, user: null, left: false, library: null,
     project: null, config: null, physKey: '', past: [], future: [], saveState: 'saved',
     sol: null, solving: false, solveError: null,
     theme: initialTheme(), inspectorOpen: true, inspectorTab: 'lines', navCollapsed: false, toasts: [],
@@ -137,8 +142,16 @@ export const useStore = create<State>((set, get) => {
     },
 
     setUser: (u) => {
-      set({ user: u });
-      if (!u) set({ project: null, config: null, sol: null, library: null, past: [], future: [] });
+      if (u) set({ user: u, left: false });
+      else set({ user: null, ...NOBODY });
+    },
+
+    // Signing out, or removing the account, is a choice; a session that ran out is not. After a
+    // session ran out the sign-in page sends the same person back to the page they were on. After
+    // a choice it must not: whoever comes in next, often someone else, starts at their own projects.
+    leave: () => {
+      window.clearTimeout(saveTimer);
+      set({ user: null, left: true, ...NOBODY });
     },
 
     loadLibrary: () => {

@@ -221,16 +221,27 @@ class _PgPool:
                                     connect_timeout=15, prepare_threshold=None,
                                     application_name="taki", client_encoding="utf8")
 
-    def acquire(self):
+    def acquire(self, fresh: bool = False):
+        """
+        A connection for one statement or one transaction. `fresh` asks for a new one and closes
+        every idle one: a statement has just failed because its link was gone, and when the
+        database hangs up (a restart, a quiet spell) it hangs up on all of them at once. A dead
+        link looks alive until it is used, so the next one from the pool would fail the same way.
+        """
         if not self._slots.acquire(timeout=30):
             raise RuntimeError("The database is busy. Try again in a moment.")
         try:
+            stale = []
             with self._lock:
+                if fresh:
+                    stale, self._idle = [raw for raw, _ in self._idle], []
                 while self._idle:
                     raw, used = self._idle.pop()
                     if not raw.closed and time.time() - used < IDLE_S:
                         return raw
-                    _quiet_close(raw)
+                    stale.append(raw)
+            for raw in stale:
+                _quiet_close(raw)
             return self._open()
         except BaseException:
             self._slots.release()
@@ -258,8 +269,10 @@ class _PgConn:
     What `conn()` hands a thread when the database is PostgreSQL. Each statement
     borrows a pooled connection, reads its rows and gives the connection back;
     inside tx() one connection is held until the transaction ends. A statement
-    that fails because the server dropped the link is retried once on a fresh
-    connection (every statement outside a transaction is safe to repeat).
+    that fails because the server dropped the link is retried once on a new
+    connection, not on another one from the pool, which the server will have
+    dropped as well (every statement outside a transaction is safe to repeat,
+    and so is the BEGIN that opens one). Inside a transaction nothing is retried.
     """
 
     def __init__(self, pool: _PgPool):
@@ -279,7 +292,7 @@ class _PgConn:
             return self._run(self._held, sql, params)
         pg = self.pool.psycopg
         for attempt in (0, 1):
-            raw = self.pool.acquire()
+            raw = self.pool.acquire(fresh=bool(attempt))
             try:
                 out = self._run(raw, sql, params)
             except (pg.OperationalError, pg.InterfaceError):
@@ -327,13 +340,21 @@ class _PgConn:
                 pass
 
     def begin(self) -> None:
-        raw = self.pool.acquire()
-        try:
-            raw.execute("BEGIN")
-        except BaseException:
-            self.pool.release(raw, broken=True)
-            raise
-        self._held = raw
+        pg = self.pool.psycopg
+        for attempt in (0, 1):
+            raw = self.pool.acquire(fresh=bool(attempt))
+            try:
+                raw.execute("BEGIN")
+            except (pg.OperationalError, pg.InterfaceError):
+                self.pool.release(raw, broken=True)
+                if attempt:
+                    raise
+                continue
+            except BaseException:
+                self.pool.release(raw, broken=True)
+                raise
+            self._held = raw
+            return
 
     def end(self) -> None:
         raw, self._held = self._held, None

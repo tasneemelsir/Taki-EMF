@@ -59,9 +59,12 @@ function RequireAuth() {
   const user = useStore((s) => s.user);
   const library = useStore((s) => s.library);
   const loadLibrary = useStore((s) => s.loadLibrary);
+  const left = useStore((s) => s.left);
   const loc = useLocation();
   useEffect(() => { if (user && !library) void loadLibrary().catch(() => undefined); }, [user, library, loadLibrary]);
-  if (!user) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  // Someone who arrives here without a session is sent back to this page once signed in. Someone who
+  // just signed out is not remembered: the next person in may be somebody else, with other projects.
+  if (!user) return <Navigate to="/login" replace state={left ? null : { from: loc.pathname }} />;
   if (!library) return <Splash label="Loading the reference library…" />;
   return <Outlet />;
 }

@@ -573,6 +573,26 @@ at zero. Lines that would run only between the ground and an unearthed sheet are
 
 ## 9. What changed
 
+### In version 4.3.5
+
+Found on the last test of the published site, and by the checks run again after it:
+
+* **Signing out with a project open.** The sign-in page remembered the page the last person was
+  on, so the next one to come in on that browser, a new guest or another account, was sent to
+  that project and told it could not be opened. A page is now remembered only for someone whose
+  session ran out; after a sign-out the next person starts at their own projects.
+* **A guest is asked before the session ends.** A guest session cannot be opened again once it
+  is left, so its projects are lost. Signing out as a guest now says so first and offers to
+  create an account instead.
+* **A database that hangs up on every connection at once.** Found by the freeze test, once it
+  was run with several connections open. After the online database restarts, every pooled
+  connection is dead at the same moment, and a dead connection looks alive until it is used. A
+  statement that failed was tried again on the next connection from the pool, which was dead
+  too, so the first one or two requests afterwards failed. The second try now opens a new
+  connection and closes the idle ones. This applied to a restart within four minutes of the
+  last request; after a longer quiet spell Taki already opened new connections.
+* On the Validation page a figure that cannot be worked out is shown as *n/a*, without a unit.
+
 ### In version 4.3.4
 
 * **A browser that had the old page kept showing it after an update.** Found on Vercel, on the

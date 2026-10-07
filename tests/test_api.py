@@ -2,6 +2,8 @@
 
 import os
 
+import pytest
+
 from server import service
 
 PW = "correct horse battery"
@@ -381,6 +383,57 @@ def test_a_database_that_is_ready_is_asked_once_not_set_up_again(client, monkeyp
         assert db.conn().ready() is False, damage
         db.reset_for_tests()
         assert db.conn().ready() is True, damage            # and the start after that puts it right
+
+
+def test_a_database_that_hung_up_on_every_connection_is_reached_again_at_once(client):
+    """
+    After the database restarts, every pooled connection is dead at the same moment. The next
+    statement used to be tried on one dead connection and then on a second one, and fail.
+    """
+    from server import config, db
+    if not db.is_postgres():
+        pytest.skip("a database in a local file has no connection to lose")
+    import threading
+    import psycopg
+
+    def hang_up(at_least):
+        with psycopg.connect(config.DATABASE_URL, autocommit=True, application_name="taki-test") as other:
+            n = other.execute("SELECT count(pg_terminate_backend(pid)) FROM pg_stat_activity "
+                              "WHERE application_name = 'taki' AND pid <> pg_backend_pid()").fetchone()[0]
+        assert n >= at_least, n
+
+    def fill_the_pool(n=4):
+        together = threading.Barrier(n)
+
+        def hold():
+            with db.tx() as c:                  # a transaction keeps its connection until it ends
+                c.execute("SELECT 1")
+                together.wait(timeout=20)
+        threads = [threading.Thread(target=hold) for _ in range(n)]
+        [t.start() for t in threads]
+        [t.join() for t in threads]
+        assert len(db._pool()._idle) >= n
+
+    fill_the_pool()
+    hang_up(4)
+    assert db.scalar("SELECT 41 + 1 AS n") == 42                      # a plain statement, first thing afterwards
+    assert client.post("/api/auth/guest", json={}).status_code == 200 and client.get("/api/projects").status_code == 200
+
+    fill_the_pool()
+    hang_up(4)
+    with db.tx() as c:                                                 # a transaction, first thing afterwards
+        c.execute("INSERT INTO users (id, name, is_guest, created_at, last_seen) VALUES ('back', 'x', 1, 1, 1)")
+    assert db.scalar("SELECT COUNT(*) AS n FROM users WHERE id = 'back'") == 1
+    assert client.get("/api/projects").status_code == 200
+
+    # inside a transaction nothing is repeated behind the caller's back: the failure is theirs to see
+    fill_the_pool()
+    with pytest.raises(psycopg.OperationalError):
+        with db.tx() as c:
+            c.execute("INSERT INTO users (id, name, is_guest, created_at, last_seen) VALUES ('half', 'x', 1, 1, 1)")
+            hang_up(1)
+            c.execute("SELECT 1")
+    assert db.scalar("SELECT COUNT(*) AS n FROM users WHERE id = 'half'") == 0
 
 
 def test_meta_reports_where_the_data_lives(client):

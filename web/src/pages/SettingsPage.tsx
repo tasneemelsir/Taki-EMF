@@ -108,6 +108,9 @@ function ChangesTab() {
             <li><b>4.3.1 · Examples appear at once.</b> On a small server the example projects on the projects page took many seconds to show, with nothing to say they were coming. Their numbers are now kept ready, and the page says so while it loads them.</li>
             <li><b>4.3.2 · More places to publish it.</b> Taki can now be put on Vercel as it is, free and on a whole processor, and the README compares the hosts with measured times. Nothing changes in the app itself.</li>
             <li><b>4.3.3 · Checked on the published site.</b> Reports now carry the date and time of your own clock: a published copy used its server's, which is hours away. A published copy also starts faster after a quiet spell, and the desktop download no longer carries files of older versions.</li>
+            <li><b>4.3.4 · The new page after an update.</b> A browser that had opened a published copy before an update could go on showing the old page. It now gets the new one.</li>
+            <li><b>4.3.5 · Signing out.</b> After someone signed out with a project open, the next person to come in on that browser was sent to that project and told it could not be opened. They now start at their own projects. A guest is asked before the session ends, because its projects cannot be opened again.</li>
+            <li><b>4.3.5 · A database that hangs up.</b> When an online database dropped every connection at once, as after a restart, the first one or two requests afterwards failed. They now go through.</li>
           </ul>
           <p className="small muted mt-8" style={{ maxWidth: 860 }}>No calculated number changed in 4.3.</p>
         </Card>

@@ -204,11 +204,18 @@ function TopBar({ onPalette, onSaveScenario, onShare }: { onPalette: () => void;
 
 export function UserMenu() {
   const user = useStore((s) => s.user);
-  const setUser = useStore((s) => s.setUser);
   const desktop = useStore((s) => !!s.meta?.desktop);
+  const signup = useStore((s) => !!s.meta?.allow_signup);
   const setInstallOpen = useStore((s) => s.setInstallOpen);
   const nav = useNavigate();
+  const [ending, setEnding] = useState(false);
   if (!user) return null;
+  const signOut = async () => {
+    await useStore.getState().saveNow();
+    try { await api.post('/auth/logout'); } catch { /* ignore */ }
+    useStore.getState().leave();
+    nav('/login', { replace: true });
+  };
   const initials = (user.name || 'G').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   // The desktop version has one person and no sign-in: nothing to sign out of, nothing to install.
   if (desktop) return (
@@ -224,7 +231,7 @@ export function UserMenu() {
       <button onClick={() => { close(); nav('/projects'); }}><FolderOpen size={14} />All projects</button>
     </>)}</MenuButton>
   );
-  return (
+  return (<>
     <MenuButton button={(_o, toggle) => (
       <button onClick={toggle} aria-label="Account" title={user.is_guest ? 'Guest session' : user.name}
               style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid var(--line-strong)', background: user.is_guest ? 'var(--surface-2)' : 'var(--blue-bg)', color: 'var(--blue)', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
@@ -238,9 +245,22 @@ export function UserMenu() {
       <button onClick={() => { close(); nav('/projects'); }}><FolderOpen size={14} />All projects</button>
       <button onClick={() => { close(); setInstallOpen(true); }}><MonitorDown size={14} />Taki as an app…</button>
       <div className="sep" />
-      <button onClick={async () => { close(); await useStore.getState().saveNow(); try { await api.post('/auth/logout'); } catch { /* ignore */ } setUser(null); nav('/login'); }}><LogOut size={14} />Sign out</button>
+      {/* A guest has nothing to sign back in with, so leaving is asked about first. */}
+      <button onClick={() => { close(); if (user.is_guest) setEnding(true); else void signOut(); }}><LogOut size={14} />Sign out</button>
     </>)}</MenuButton>
-  );
+    {ending && (
+      <Modal title="End this guest session?" onClose={() => setEnding(false)} footer={<>
+        <Button onClick={() => setEnding(false)}>Stay</Button>
+        {signup && <Button onClick={() => { setEnding(false); nav('/register'); }}>Create an account</Button>}
+        <Button variant="danger" onClick={() => { setEnding(false); void signOut(); }}>End the session</Button>
+      </>}>
+        <div className="small">
+          A guest session cannot be opened again once it has ended, so the projects made in it are lost.
+          To keep them, {signup ? 'create an account (they move into it), or ' : ''}export them to a file from the projects page first.
+        </div>
+      </Modal>
+    )}
+  </>);
 }
 
 function SaveScenarioModal({ onClose }: { onClose: () => void }) {

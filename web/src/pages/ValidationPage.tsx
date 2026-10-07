@@ -60,6 +60,7 @@ export default function ValidationPage() {
   }, [mode, dsId, geom, matchGround, csvText, withShield, physKey]);
 
   const mismatch = res?.like_for_like === false;
+  const nrmse = res && res.nrmse !== null && Number.isFinite(res.nrmse) ? res.nrmse : null;
   const fig = useMemo(() => (res ? validationFigure(res.curve, res.points, res.label,
     res.like_for_like === false ? 'Taki on YOUR project (a different tower)' : res.like_for_like ? "Taki on the source's tower" : 'Taki (calculated)',
     res.like_for_like === false) : null), [res]);
@@ -131,9 +132,10 @@ export default function ValidationPage() {
             )}
             <div className="grid c4 mb-12" style={mismatch ? { opacity: 0.55 } : undefined} title={mismatch ? 'These figures compare two different lines' : undefined}>
               <Metric label="RMSE" value={fmt(res.rmse)} unit="µT" sub={`${res.n_points} point${res.n_points === 1 ? '' : 's'}`} />
-              <Metric label="NRMSE" value={res.nrmse !== null && Number.isFinite(res.nrmse) ? res.nrmse.toFixed(1) : 'n/a'} unit="%" sub="normalised by the reference range" />
-              <Metric label="MAPE" value={res.mape !== null ? res.mape.toFixed(1) : 'n/a'} unit="%" sub={`${res.mape_used} used, ${res.mape_excluded} near-zero excluded`} />
-              <Metric label="Mean ratio" value={res.mean_ratio !== null ? res.mean_ratio.toFixed(4) : 'n/a'} unit="×" sub={res.ratio_over_sqrt2 !== null ? `÷ √2 = ${res.ratio_over_sqrt2.toFixed(4)}` : 'Taki ÷ reference'} />
+              {/* A figure that cannot be worked out is shown as n/a, without the unit of a number that is not there. */}
+              <Metric label="NRMSE" {...(nrmse !== null ? { value: nrmse.toFixed(1), unit: '%' } : { value: 'n/a' })} sub={nrmse !== null || res.n_points !== 1 ? 'normalised by the reference range' : 'needs more than one point'} />
+              <Metric label="MAPE" {...(res.mape !== null ? { value: res.mape.toFixed(1), unit: '%' } : { value: 'n/a' })} sub={`${res.mape_used} used, ${res.mape_excluded} near-zero excluded`} />
+              <Metric label="Mean ratio" {...(res.mean_ratio !== null ? { value: res.mean_ratio.toFixed(4), unit: '×' } : { value: 'n/a' })} sub={res.ratio_over_sqrt2 !== null ? `÷ √2 = ${res.ratio_over_sqrt2.toFixed(4)}` : 'Taki ÷ reference'} />
             </div>
             {res.notes.map((n, i) => <Note key={i} kind="info">{n}</Note>)}
             {res.excluded.length > 0 && <Note>{res.excluded.length === 1 ? '1 point is' : `${res.excluded.length} points are`} left out ({res.excluded.map((e) => e.replace(/_/g, ' ')).join(', ')}): the source does not state the distance {res.excluded.length === 1 ? 'it corresponds' : 'they correspond'} to, so {res.excluded.length === 1 ? 'it' : 'they'} cannot be placed on a distance axis.</Note>}
